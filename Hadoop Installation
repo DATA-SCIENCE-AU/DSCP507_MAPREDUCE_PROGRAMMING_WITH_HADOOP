@@ -1,0 +1,346 @@
+# Step 1 : Commands for removeing lock
+
+	sudo rm /var/lib/apt/lists/lock
+	sudo rm /var/cache/apt/archives/lock
+	sudo rm /var/lib/dpkg/lock
+        sudo rm /var/lib/dpkg/lock-frontend
+
+# Step 2 : Installation of JAVA
+# Update the source list
+
+ 	sudo apt-get update
+
+
+# The OpenJDK project is the default version of Java 
+# that is provided from a supported Ubuntu repository.
+	
+	sudo apt-get install openjdk-8-jdk
+
+	java -version
+
+java version "1.7.0_65"
+OpenJDK Runtime Environment (IcedTea 2.5.3) (7u71-2.5.3-0ubuntu0.14.04.1)
+OpenJDK 64-Bit Server VM (build 24.65-b04, mixed mode)
+
+	
+
+#Step 3: Adding a dedicated Hadoop user
+
+	sudo addgroup hadoop
+
+Adding group `hadoop' (GID 1002) ...
+Done.
+
+	sudo adduser --ingroup hadoop hduser
+
+Adding user `hduser' ...
+Adding new user `hduser' (1001) with group `hadoop' ...
+Creating home directory `/home/hduser' ...
+Copying files from `/etc/skel' ...
+Enter new UNIX password: 
+Retype new UNIX password: 
+passwd: password updated successfully
+Changing the user information for hduser
+Enter the new value, or press ENTER for the default
+	Full Name []: 
+	Room Number []: 
+	Work Phone []: 
+	Home Phone []: 
+	Other []: 
+Is the information correct? [Y/n] Y
+	
+
+	sudo adduser hduser sudo
+
+[sudo] password for Ragupathy: 
+Adding user `hduser' to group `sudo' ...
+Adding user hduser to group sudo
+Done.
+
+
+# Step 4 : Installing SSH, Create and Setup SSH Certificates
+	
+#installing SSH 
+
+	sudo apt-get install ssh
+
+#verification of SSH and SSHD
+	
+	which ssh
+/usr/bin/ssh
+
+	which sshd
+/usr/sbin/sshd
+
+#Switching to hduser 
+
+	su hduser
+
+Password: 
+
+
+#SSH certificate generation
+
+	ssh-keygen -t rsa -P ""
+
+Generating public/private rsa key pair.
+Enter file in which to save the key (/home/hduser/.ssh/id_rsa): 
+Created directory '/home/hduser/.ssh'.
+Your identification has been saved in /home/hduser/.ssh/id_rsa.
+Your public key has been saved in /home/hduser/.ssh/id_rsa.pub.
+The key fingerprint is:
+50:6b:f3:fc:0f:32:bf:30:79:c2:41:71:26:cc:7d:e3 hduser@laptop
+The key's randomart image is:
++--[ RSA 2048]----+
+|        .oo.o    |
+|       . .o=. o  |
+|      . + .  o . |
+|       o =    E  |
+|        S +      |
+|         . +     |
+|          O +    |
+|           O o   |
+|            o..  |
++-----------------+
+
+# added to list of authorized keys so that ssh can be used without prompting for a password
+
+	cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+
+# to check SSH works or not 
+
+	ssh localhost
+
+
+#Step 5: Download and Install Hadoop 
+
+#goto hduser and download hadoop 2.6.5 
+	
+	wget https://archive.apache.org/dist/hadoop/common/hadoop-2.6.5/hadoop-2.6.5.tar.gz
+
+#unzip hadoop-2.6.5.tar.gz
+
+	tar xvzf hadoop-2.6.5.tar.gz
+
+#make a hadoop dir under usr/local dir
+	
+	sudo mkdir -p /usr/local/hadoop
+
+# move to hadoop-2.6.5 and move all files and folders in hadoop-2.6.5 dir to hadoop dir 
+
+	cd hadoop-2.6.5
+	
+	sudo mv * /usr/local/hadoop
+
+#change ownership rights of all files and folders recursively to hduser in hadoop group
+
+	sudo chown -R ragu:hadoop /usr/local/hadoop
+
+
+#Step 6: Hadoop Setup Configuration Files
+
+#The following files should to be modified to complete the Hadoop setup:
+
+#    ~/.bashrc
+#    /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+#    /usr/local/hadoop/etc/hadoop/core-site.xml
+#    /usr/local/hadoop/etc/hadoop/mapred-site.xml.template
+#    /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+#    /usr/local/hadoop/etc/hadoop/yarn-site.xml
+
+
+
+# JAVA_HOME can be found from following command 
+# from the responce copy /usr/lib/jvm/java-8-openjdk-i386 only for JAVA_HOME
+
+	update-alternatives --config java
+
+# 1. edit ~/.bashrc file 
+
+	sudo nano ~/.bashrc
+
+# insert the following HADOOP VARIABLE export commands in that file 
+  
+#HADOOP VARIABLES START
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+#export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-i386
+export HADOOP_INSTALL=/usr/local/hadoop
+export PATH=$PATH:$HADOOP_INSTALL/bin
+export PATH=$PATH:$HADOOP_INSTALL/sbin
+export HADOOP_MAPRED_HOME=$HADOOP_INSTALL
+export HADOOP_COMMON_HOME=$HADOOP_INSTALL
+export HADOOP_HDFS_HOME=$HADOOP_INSTALL
+export YARN_HOME=$HADOOP_INSTALL
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_INSTALL/lib/native
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_INSTALL/lib"
+export HADOOP_CLASSPATH=$(hadoop classpath)
+#HADOOP VARIABLES END
+
+
+#execute .bashrc
+
+	source ~/.bashrc
+
+
+# 2. edit hadoop-env.sh file 
+
+	sudo nano /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+
+#insert the following export command in that file
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+#export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-i386
+
+
+# 3. To override configuration settings of core-site.xml:
+
+# create the /app/hadoop/tmp directory to be used to override default settings that Hadoop starts
+
+	sudo mkdir -p /app/hadoop/tmp
+
+#change the ownership to hduser in hadoop group
+
+	sudo chown ragu:hadoop /app/hadoop/tmp
+
+# 4. edit core-site.xml file 
+
+	sudo nano /usr/local/hadoop/etc/hadoop/core-site.xml
+
+#insert the following statements in that file in between <configuration> </configuration>
+
+
+ <property>
+  <name>hadoop.tmp.dir</name>
+  <value>/app/hadoop/tmp</value>
+  <description>A base for other temporary directories.</description>
+ </property>
+
+ <property>
+  <name>fs.default.name</name>
+  <value>hdfs://localhost:54310</value>
+  <description>The name of the default file system.  A URI whose
+  scheme and authority determine the FileSystem implementation.  The
+  uri's scheme determines the config property (fs.SCHEME.impl) naming
+  the FileSystem implementation class.  The uri's authority is used to
+  determine the host, port, etc. for a filesystem.</description>
+ </property>
+
+
+
+# 5. edit mapred-site.xml
+
+# copy mapred-site.xml.template to mapred-site.xml
+
+	cp /usr/local/hadoop/etc/hadoop/mapred-site.xml.template /usr/local/hadoop/etc/hadoop/mapred-site.xml
+
+#edit core-site.xml file 
+
+	sudo nano /usr/local/hadoop/etc/hadoop/mapred-site.xml
+
+#insert the following statements in that file in between <configuration> </configuration>
+
+<property>
+  <name>mapred.job.tracker</name>
+  <value>localhost:54311</value>
+  <description>The host and port that the MapReduce job tracker runs
+  at.  If "local", then jobs are run in-process as a single map
+  and reduce task.
+  </description>
+</property>
+
+<property>
+ <name>mapreduce.framework.name</name>
+ <value>yarn</value>
+</property>
+
+# 6. create namenode, datanode and change the ownership of hadoop_store to hduser in hadoop group 
+
+	sudo mkdir -p /usr/local/hadoop_store/hdfs/namenode
+	sudo mkdir -p /usr/local/hadoop_store/hdfs/datanode
+	sudo chown -R hduser:hadoop /usr/local/hadoop_store
+
+# 7. edit hdfs-site.xml
+
+	sudo nano /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+
+#insert the following statements in that file in between <configuration> </configuration>
+
+<property>
+  <name>dfs.replication</name>
+  <value>1</value>
+  <description>Default block replication.
+  The actual number of replications can be specified when the file is created.
+  The default is used if replication is not specified in create time.
+  </description>
+ </property>
+ <property>
+   <name>dfs.namenode.name.dir</name>
+   <value>file:/usr/local/hadoop_store/hdfs/namenode</value>
+ </property>
+ <property>
+   <name>dfs.datanode.data.dir</name>
+   <value>file:/usr/local/hadoop_store/hdfs/datanode</value>
+ </property>
+
+# 8. Format the New Hadoop Filesystem
+	
+	hadoop namenode -format
+
+# 9. edit yarn-site.xml
+
+	sudo nano /usr/local/hadoop/etc/hadoop/yarn-site.xml
+
+#insert the following statements in that file in between <configuration> </configuration>
+
+<property>
+      <name>yarn.nodemanager.aux-services</name>
+      <value>mapreduce_shuffle</value>
+</property>
+
+<property>
+    <name>yarn.nodemanager.aux-services.mapreduce_shuffle.class</name>
+    <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+  </property>
+
+
+#Step 7 : Starting Hadoop
+
+	start-all.sh 
+
+	or 
+	start-dfs.sh
+	start-yarn.sh
+
+# to check the execution 
+
+	jps
+
+# display as follows
+14306 DataNode
+14660 ResourceManager
+14505 SecondaryNameNode
+14205 NameNode
+14765 NodeManager
+15166 Jps
+
+#web UI of the NameNode daemon - Type http://localhost:50070/ as url into our browser
+#SecondaryNameNode - Type in http://localhost:50090/status.jsp as url into our browser
+#logs - Type in http://localhost:50090/logs/ as url into our browser
+#Resouece mamager - Type http://localhost:8088/ as url into our browser
+
+#Step 8 : Stoping Hadoop
+
+	stop-all.sh 
+
+	or 
+	stop-dfs.sh
+	stop-yarn.sh
+
+
+
+
+
+
+
+
+
+
