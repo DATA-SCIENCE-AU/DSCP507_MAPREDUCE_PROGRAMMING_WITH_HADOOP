@@ -52,7 +52,7 @@ Is the information correct? [Y/n] Y
 
 	sudo adduser hduser sudo
 
-[sudo] password for Ragu: 
+[sudo] password for ragupathy: 
 Adding user `hduser' to group `sudo' ...
 Adding user hduser to group sudo
 Done.
