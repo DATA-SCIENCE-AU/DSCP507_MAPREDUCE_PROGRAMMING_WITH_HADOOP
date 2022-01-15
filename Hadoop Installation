@@ -3,7 +3,7 @@
 	sudo rm /var/lib/apt/lists/lock
 	sudo rm /var/cache/apt/archives/lock
 	sudo rm /var/lib/dpkg/lock
-        sudo rm /var/lib/dpkg/lock-frontend
+    sudo rm /var/lib/dpkg/lock-frontend
 
 # Step 2 : Installation of JAVA
 # Update the source list
@@ -52,7 +52,7 @@ Is the information correct? [Y/n] Y
 
 	sudo adduser hduser sudo
 
-[sudo] password for Ragupathy: 
+[sudo] password for Ragu: 
 Adding user `hduser' to group `sudo' ...
 Adding user hduser to group sudo
 Done.
